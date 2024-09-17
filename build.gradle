@@ -1,0 +1,72 @@
+subprojects { project ->
+  	ext {
+		// Global variables reused across all subprojects.
+		// Each subproject is expected to define their own minecraft_version and mod_loader.
+		// CHECK automatically define mod_loader based on parent directory? Preferably without ghost projects.
+
+    	mod_id = 'advancedbackups'
+		mod_group = 'co.uk.mommyheather.advancedbackups'
+		mod_version = '3.6.3'
+
+		mod_name = 'Advanced Backups'
+		mod_description = 'A highly advanced and configurable backup mod.'
+		mod_authors = 'Heather White'
+		mod_license = 'BSD'
+	}
+
+	version = mod_version
+	group = mod_group
+
+	repositories {
+		mavenLocal()
+		mavenCentral()
+	}
+
+	tasks.withType(JavaCompile).configureEach {
+		options.encoding = 'UTF-8'
+	}
+
+	if (project.name != 'core') {
+		configurations {
+			// FIXME gradle doesn't detect this as neoforge-1.21:jar depending on core:jar?
+			//implementation.extendsFrom(bundled)
+		}
+
+		afterEvaluate {
+			dependencies {
+				//bundled project(':core')
+				implementation project(':core')
+			}
+
+			tasks.named('jar', Jar).configure {
+				from {
+					configurations.bundled.collect { it.isDirectory() ? it : zipTree(it) }
+				}
+
+				archiveBaseName = "${mod_id}-${project.minecraft_version}-${project.mod_loader}"
+				destinationDirectory = rootProject.file('build')
+
+				manifest {
+					attributes([
+							"Main-Class"              : "co.uk.mommyheather.advancedbackups.cli.AdvancedBackupsCLI",
+							"Specification-Title"     : mod_id,
+							"Specification-Vendor"    : "mommyheather", // CHECK mod_authors?
+							"Specification-Version"   : "1", // FUTURE API version?
+							"Implementation-Title"    : rootProject.name,
+							"Implementation-Version"  : mod_version,
+							"Implementation-Vendor"   : "mommyheather", // CHECK mod_authors?
+							"Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+					])
+				}
+			}
+
+			// IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
+			idea {
+				module {
+					downloadSources = true
+					downloadJavadoc = true
+				}
+			}
+		}
+	}
+}
